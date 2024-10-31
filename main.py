@@ -64,6 +64,8 @@ def parse_args():
         help="Import the last N days of activities from Strava"
     )
 
+    parser.add_argument("--stop-at-duplicate", default=False, action="store_true", help="Stop processing when a duplicate activity is found")
+
     parser.add_argument("--sync-name", default=False, action="store_true", help="Synchronize activity name")
     parser.add_argument("--sync-photos", default=False, action="store_true", help="Synchronize activity photos")
     parser.add_argument("--sync-gear", default=True, action="store_true", help="Synchronize gear used in activity")
@@ -118,6 +120,8 @@ def main():
         except garmin.DuplicateActivityError as e:
             logging.warning("Activity has already been uploaded to Garmin Connect with (id=%d)", e.activity_id)
             activity_id = e.activity_id
+            if args.stop_at_duplicate:
+                break
 
         if args.sync_name:
             logging.info("Set activity name")
