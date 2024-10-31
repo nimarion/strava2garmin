@@ -14,7 +14,7 @@ jobs:
       STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
       STRAVA_EMAIL: ${{ secrets.STRAVA_EMAIL }}
       STRAVA_PASSWORD: ${{ secrets.STRAVA_PASSWORD }}
-      GARMIN_USERNAME: ${{ secrets.GARMIN_USERNAME }}
+      GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
       GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
     steps:
       - name: Checkout code

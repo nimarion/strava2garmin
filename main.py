@@ -44,7 +44,7 @@ def parse_args():
     parser.add_argument(
         "--strava-refresh-token",
         type=str,
-        default=os.getenv("STRAVA_RERESH_TOKEN"),
+        default=os.getenv("STRAVA_REFRESH_TOKEN"),
         help="The Strava OAuth refresh token"
     )
 
