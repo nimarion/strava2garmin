@@ -7,15 +7,11 @@ import argparse
 from datetime import datetime, timedelta
 from urllib import request
 
-from strava2garminconnect import garmin, strava, image
+import strava
+import garmin
 from thefuzz import process
 from stravaweblib import DataFormat
-
-def get_code(url: str) -> str:
-    logging.info("Visit URL and extract code: %s", url)
-
-    return input("OAuth code: ")
-
+from dotenv import load_dotenv
 
 def get_mfa() -> str:
     return input("MFA one-time code: ")
@@ -25,67 +21,42 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--tokens",
-        type=str,
-        default=os.getenv("TOKENS", os.path.expanduser("~/.strava2garminconnect")),
-        help="The path to a directory in which session tokens will be persisted"
-    )
-    parser.add_argument(
-        "--strava-email", type=str, default=os.environ.get("STRAVA_EMAIL"),
+        "--strava-email", type=str, default=os.getenv("STRAVA_EMAIL"),
         help="The Strava email"
     )
     parser.add_argument(
         "--strava-password",
         type=str,
-        default=os.environ.get("STRAVA_PASSWORD"),
+        default=os.getenv("STRAVA_PASSWORD"),
         help="The Strava password"
+        
     )
     parser.add_argument(
-        "--strava-password-file",
-        type=str,
-        default=os.environ.get("STRAVA_PASSWORD_FILE"),
-        help="The path to a file containing the Strava password"
-    )
-    parser.add_argument(
-        "--strava-client-id", type=str, default=os.environ.get("STRAVA_CLIENT_ID"),
+        "--strava-client-id", type=str, default=os.getenv("STRAVA_CLIENT_ID"),
         help="The Strava OAuth client ID"
     )
     parser.add_argument(
         "--strava-client-secret",
         type=str,
-        default=os.environ.get("STRAVA_CLIENT_SECRET"),
+        default=os.getenv("STRAVA_CLIENT_SECRET"),
         help="The Strava OAuth client secret"
     )
     parser.add_argument(
-        "--strava-client-secret-file",
+        "--strava-refresh-token",
         type=str,
-        default=os.environ.get("STRAVA_CLIENT_SECRET_FILE"),
-        help="The path to a file containging Strava OAuth client secret"
+        default=os.getenv("STRAVA_RERESH_TOKEN"),
+        help="The Strava OAuth refresh token"
     )
 
     parser.add_argument(
-        "--garmin-email", type=str, default=os.environ.get("GARMIN_EMAIL"),
+        "--garmin-email", type=str, default=os.getenv("GARMIN_EMAIL"),
         help="The Garmin Connect email address"
     )
     parser.add_argument(
-        "--garmin-password", type=str, default=os.environ.get("GARMIN_PASSWORD"),
+        "--garmin-password", type=str, default=os.getenv("GARMIN_PASSWORD"),
         help="The Garmin Connect password"
     )
-    parser.add_argument(
-        "--garmin-password-file",
-        type=str,
-        default=os.environ.get("GARMIN_PASSWORD_FILE"),
-        help="The path to a file containing the Garmin Connect password"
-    )
 
-    parser.add_argument(
-        "--filter-activity-type",
-        type=str,
-        action="append",
-        nargs="*",
-        default=os.environ.get("FILTER_ACTIVITY_TYPE"),
-        help="Filter the synchronized activities by type"
-    )
     parser.add_argument(
         "--filter-last-days",
         type=int,
@@ -93,9 +64,9 @@ def parse_args():
         help="Import the last N days of activities from Strava"
     )
 
-    parser.add_argument("--sync-name", type=bool, default=True, help="Synchronize activity name")
-    parser.add_argument("--sync-photos", type=bool, default=True, help="Synchronize activity photos")
-    parser.add_argument("--sync-gear", type=bool, default=True, help="Synchronize gear used in activity")
+    parser.add_argument("--sync-name", default=False, action="store_true", help="Synchronize activity name")
+    parser.add_argument("--sync-photos", default=False, action="store_true", help="Synchronize activity photos")
+    parser.add_argument("--sync-gear", default=True, action="store_true", help="Synchronize gear used in activity")
     parser.add_argument("--sync-gear-threshold", type=int, default=80, help="Similarity threshold for gear matching")
 
     return parser.parse_args()
@@ -110,27 +81,21 @@ def read_secret(secret, secret_file):
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
-    for logger in ["oauthlib", "requests_oauthlib", "stravalib.util.limiter", "urllib3.connectionpool", "PIL", "stravalib.client.BatchedResultsIterator"]:
+    for logger in ["oauthlib", "requests_oauthlib", "stravalib.util.limiter", "urllib3.connectionpool", "PIL"]:
         logging.getLogger(logger).setLevel(logging.INFO)
 
     args = parse_args()
 
-    # Read secrets
-    garmin_password = read_secret(args.garmin_password, args.garmin_password_file)
-    strava_password = read_secret(args.strava_password, args.strava_password_file)
-    strava_client_secret = read_secret(args.strava_client_secret, args.strava_client_secret_file)
-
     sc = strava.Client(
-        args.tokens,
-        args.strava_email,
-        strava_password,
-        args.strava_client_id,
-        strava_client_secret,
-        get_code,
+        refresh_token=args.strava_refresh_token,
+        email=args.strava_email,
+        password=args.strava_password,
+        client_id=args.strava_client_id,
+        client_secret=args.strava_client_secret,
     )
-    gc = garmin.Client(args.tokens, args.garmin_email, garmin_password, get_mfa)
+    gc = garmin.Client(args.garmin_email, args.garmin_password, get_mfa)
 
     if args.sync_gear:
         profile = gc.get_user_profile()
@@ -141,12 +106,7 @@ def main():
     end_date = datetime.now()
 
     for activity in sc.get_activities(after=start_date, before=end_date):
-        logging.info("========================================") # just an empty line
-
-        if activity.type.root not in args.filter_activity_type:
-            logging.debug("Skipping activity %s", activity.name)
-            continue
-
+        logging.info("========================================")
         logging.info("Processing activity %s", activity.name)
 
         name, contents = sc.get_activity_data(activity.id, fmt=DataFormat.ORIGINAL)
@@ -198,4 +158,5 @@ def main():
 
 
 if __name__ == "__main__":
+    load_dotenv()
     main()

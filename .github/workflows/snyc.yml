@@ -1,0 +1,30 @@
+name: Sync Strava to Garmin
+
+on:
+  #schedule:
+  #  - cron: "0 16,4 * * *"
+  workflow_dispatch:
+
+jobs:
+  commit:
+    runs-on: ubuntu-latest
+    env:
+      STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
+      STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
+      STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
+      STRAVA_EMAIL: ${{ secrets.STRAVA_EMAIL }}
+      STRAVA_PASSWORD: ${{ secrets.STRAVA_PASSWORD }}
+      GARMIN_USERNAME: ${{ secrets.GARMIN_USERNAME }}
+      GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+      - name: Install Requirements
+        run: pip install -r requirements.txt
+      - uses: actions/checkout@v3
+      - run: |
+          python main.py

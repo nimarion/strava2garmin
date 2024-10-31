@@ -11,7 +11,7 @@ from urllib import request
 from urllib import parse
 from garminconnect import Garmin as GarminClient, GarminConnectAuthenticationError
 from garth.http import GarthHTTPError
-from strava2garminconnect import image
+import image
 
 class DuplicateActivityPhoto(Exception):
     
@@ -53,19 +53,20 @@ class DuplicateActivityError(Exception):
 
 class Client(GarminClient):
 
-    def __init__(self, tokens: str, email: str, password: str, get_mfa):
-        tokens = os.path.join(tokens, "garmin")
+    def __init__(self, email: str, password: str, get_mfa):
+        print(email,password)
+        #tokens = os.path.join(tokens, "garmin")
 
-        try:
-            super().__init__()
-            self.login(tokens)
+        #try:
+        #    super().__init__()
+        #    self.login(tokens)
 
-        except (FileNotFoundError, GarthHTTPError, GarminConnectAuthenticationError):
-            super().__init__(
-                email=email, password=password, is_cn=False, prompt_mfa=get_mfa
-            )
-            self.login()
-            self.garth.dump(tokens)
+        #except (FileNotFoundError, GarthHTTPError, GarminConnectAuthenticationError):
+        super().__init__(
+            email=email, password=password, is_cn=False, prompt_mfa=get_mfa
+        )
+        self.login()
+        #self.garth.dump(tokens)
 
     def upload_activity(self, name: str, content: bytes):
         files = {

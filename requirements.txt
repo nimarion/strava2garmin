@@ -1,0 +1,6 @@
+stravalib
+stravaweblib
+garminconnect
+thefuzz
+pillow
+python-dotenv
